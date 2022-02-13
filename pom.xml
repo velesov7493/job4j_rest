@@ -5,7 +5,7 @@
     <modules>
         <module>auth</module>
         <module>employees</module>
-        <module>chat</module>
+        <!--<module>chat</module>!-->
     </modules>
 
     <parent>

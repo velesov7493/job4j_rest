@@ -1,4 +1,4 @@
-[![Build Status](https://app.travis-ci.com/velesov7493/job4j_rest.svg?branch=master)](https://app.travis-ci.com/velesov7493/job4j_auth)
+[![Build Status](https://app.travis-ci.com/velesov7493/job4j_rest.svg?branch=master)](https://app.travis-ci.com/velesov7493/job4j_rest)
 ## Описание ##
 Учебный проект.
 Сборник REST-сервисов job4j
