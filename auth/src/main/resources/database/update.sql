@@ -1,4 +1,4 @@
 INSERT INTO tz_persons (login, password) VALUES
-('parsentev', '123'),
-('ban', '123'),
-('ivan', '123');
+('admin', 'masterkey'),
+('moderator', '9999'),
+('user', '7777');

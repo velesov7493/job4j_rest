@@ -29,7 +29,7 @@ public class MetadataRepository {
                 + "    password VARCHAR(40) NOT NULL"
                 + "); "
                 + "INSERT INTO tz_persons (login, password) VALUES "
-                + "('parsentev', '123'), ('ban', '123'), ('ivan', '123');";
+                + "('admin', 'masterkey'), ('moderator', '9999'), ('user', '7777');";
         try {
             em.joinTransaction();
             em.createNativeQuery(sql).executeUpdate();

@@ -110,8 +110,8 @@ public class EmployeesService {
         return result;
     }
 
-    public void updateAccount(Account value) {
-        accounts.update(value);
+    public boolean updateAccount(Account value) {
+        return accounts.update(value);
     }
 
     public List<Account> findAllAccounts() {
@@ -122,8 +122,8 @@ public class EmployeesService {
         return accounts.findById(accountId);
     }
 
-    public void deleteAccountById(int accountId) {
+    public boolean deleteAccountById(int accountId) {
         keys.deleteAllByAccountId(accountId);
-        accounts.deleteById(accountId);
+        return accounts.deleteById(accountId);
     }
 }

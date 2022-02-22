@@ -30,14 +30,14 @@ public class PersonControllerTest {
     @Test
     public void whenFindAll() throws Exception {
         mockMvc.perform(get("/person/"))
-        .andExpect(content().json("[{\"id\":1,\"login\":\"parsentev\",\"password\":\"123\"},{\"id\":2,\"login\":\"ban\",\"password\":\"123\"},{\"id\":3,\"login\":\"ivan\",\"password\":\"123\"}]"))
+        .andExpect(content().json("[{\"id\":1,\"login\":\"admin\",\"password\":\"masterkey\"},{\"id\":2,\"login\":\"moderator\",\"password\":\"9999\"},{\"id\":3,\"login\":\"user\",\"password\":\"7777\"}]"))
         .andExpect(status().isOk());
     }
 
     @Test
     public void whenFindById() throws Exception {
         mockMvc.perform(get("/person/1"))
-        .andExpect(content().json("{\"id\":1,\"login\":\"parsentev\",\"password\":\"123\"}"))
+        .andExpect(content().json("{\"id\":1,\"login\":\"admin\",\"password\":\"masterkey\"}"))
         .andExpect(status().isOk());
     }
 

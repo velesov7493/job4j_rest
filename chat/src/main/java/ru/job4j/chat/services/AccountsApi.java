@@ -1,4 +1,4 @@
-package ru.job4j.employees.services;
+package ru.job4j.chat.services;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -6,7 +6,7 @@ import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
-import ru.job4j.employees.domains.Account;
+import ru.job4j.chat.domains.Account;
 
 import java.util.List;
 
@@ -21,6 +21,13 @@ public class AccountsApi {
 
     AccountsApi(RestTemplate temp) {
         rest = temp;
+        Account test = findById(1);
+        if (test == null) {
+            throw new IllegalStateException(
+                "Системная ошибка: сервис аккаунтов не найден "
+                + "или не отвечает должным образом - нет аккаунта с id=1"
+            );
+        }
     }
 
     Account create(Account value) {
@@ -48,8 +55,8 @@ public class AccountsApi {
         List<Account> result = null;
         try {
             result = rest.exchange(
-                ACCOUNTS_URI, HttpMethod.GET, null,
-                new ParameterizedTypeReference<List<Account>>() { }
+                    ACCOUNTS_URI, HttpMethod.GET, null,
+                    new ParameterizedTypeReference<List<Account>>() { }
             ).getBody();
         } catch (Throwable ex) {
             LOG.error("Ошибка получения списка аккаунтов: ", ex);

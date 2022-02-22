@@ -9,6 +9,7 @@ REST-сервис сотрудников.
 Он связан через RestTemplate с сервисом авторизации пользователей.
 #### Сервис chat ####
 REST-сервис чат пользователей.
+Также связан через RestTemplate с сервисом авторизации пользователей.
 #### Технологии проекта ####
 ![badge](https://img.shields.io/badge/PostgreSQL-12-blue)
 ![badge](https://img.shields.io/badge/Java-11-green)
