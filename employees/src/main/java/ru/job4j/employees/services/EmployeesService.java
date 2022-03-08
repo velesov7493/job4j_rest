@@ -110,20 +110,20 @@ public class EmployeesService {
         return result;
     }
 
-    public boolean updateAccount(Account value) {
-        return accounts.update(value);
+    public boolean updateAccount(String token, Account value) {
+        return accounts.update(token, value);
     }
 
-    public List<Account> findAllAccounts() {
-        return accounts.findAll();
+    public List<Account> findAllAccounts(String token) {
+        return accounts.findAll(token);
     }
 
     public Account findAccountById(int accountId) {
         return accounts.findById(accountId);
     }
 
-    public boolean deleteAccountById(int accountId) {
+    public boolean deleteAccountById(String token, int accountId) {
         keys.deleteAllByAccountId(accountId);
-        return accounts.deleteById(accountId);
+        return accounts.deleteById(token, accountId);
     }
 }

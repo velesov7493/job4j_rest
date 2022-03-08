@@ -14,13 +14,21 @@ import java.util.List;
 public class EmployeesController {
 
     private final EmployeesService service;
+    private final AccountsApi accounts;
 
-    public EmployeesController(EmployeesService s1) {
-        service = s1;
+    public EmployeesController(EmployeesService service, AccountsApi accounts) {
+        this.service = service;
+        this.accounts = accounts;
     }
 
     @GetMapping("/employees")
-    public ResponseEntity<List<Employee>> findAll() {
+    public ResponseEntity<List<Employee>> findAll(
+            @RequestHeader(name = AccountsApi.AUTH_HEADER_NAME, required = false) String token
+    ) {
+        Account acc = accounts.getAccountByToken(token);
+        if (acc == null) {
+            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+        }
         List<Employee> list = service.findAllEmployees();
         return
                 list == null || list.isEmpty()
@@ -37,7 +45,14 @@ public class EmployeesController {
     }
 
     @GetMapping("/employee/{id}")
-    public ResponseEntity<Employee> findById(@PathVariable(name = "id") int employeeId) {
+    public ResponseEntity<Employee> findById(
+            @RequestHeader(name = AccountsApi.AUTH_HEADER_NAME, required = false) String token,
+            @PathVariable(name = "id") int employeeId
+    ) {
+        Account acc = accounts.getAccountByToken(token);
+        if (acc == null) {
+            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+        }
         Employee employee = service.findEmployeeById(employeeId);
         return
                 employee == null
@@ -46,7 +61,14 @@ public class EmployeesController {
     }
 
     @PutMapping("/employees")
-    public ResponseEntity<Void> update(@RequestBody Employee employee) {
+    public ResponseEntity<Void> update(
+            @RequestHeader(name = AccountsApi.AUTH_HEADER_NAME, required = false) String token,
+            @RequestBody Employee employee
+    ) {
+        Account acc = accounts.getAccountByToken(token);
+        if (acc == null) {
+            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+        }
         return
                 service.saveEmployee(employee)
                 ? new ResponseEntity<>(HttpStatus.ACCEPTED)
@@ -54,7 +76,14 @@ public class EmployeesController {
     }
 
     @DeleteMapping("/employee/{id}")
-    public ResponseEntity<Void> delete(@PathVariable(name = "id") int employeeId) {
+    public ResponseEntity<Void> delete(
+            @RequestHeader(name = AccountsApi.AUTH_HEADER_NAME, required = false) String token,
+            @PathVariable(name = "id") int employeeId
+    ) {
+        Account acc = accounts.getAccountByToken(token);
+        if (acc == null) {
+            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+        }
         return
                 service.deleteEmployeeById(employeeId)
                 ? new ResponseEntity<>(HttpStatus.OK)
@@ -73,14 +102,28 @@ public class EmployeesController {
     }
 
     @PutMapping("/accounts")
-    public ResponseEntity<Account> updateAccount(@RequestBody Account account) {
-        service.updateAccount(account);
+    public ResponseEntity<Account> updateAccount(
+            @RequestHeader(name = AccountsApi.AUTH_HEADER_NAME, required = false) String token,
+            @RequestBody Account account
+    ) {
+        Account acc = accounts.getAccountByToken(token);
+        if (acc == null) {
+            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+        }
+        service.updateAccount(token, account);
         return new ResponseEntity<>(HttpStatus.ACCEPTED);
     }
 
     @DeleteMapping("/account/{id}")
-    public ResponseEntity<Void> deleteAccount(@PathVariable(name = "id") int accountId) {
-        service.deleteAccountById(accountId);
+    public ResponseEntity<Void> deleteAccount(
+            @RequestHeader(name = AccountsApi.AUTH_HEADER_NAME, required = false) String token,
+            @PathVariable(name = "id") int accountId
+    ) {
+        Account acc = accounts.getAccountByToken(token);
+        if (acc == null) {
+            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+        }
+        service.deleteAccountById(token, accountId);
         return new ResponseEntity<>(HttpStatus.OK);
     }
 

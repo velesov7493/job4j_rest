@@ -19,9 +19,9 @@ public class ChatService {
 
     private final RoomsRepository rooms;
     private final MessagesRepository messages;
-    private final UsersService users;
+    private final AccountsApi users;
 
-    public ChatService(RoomsRepository repo1, MessagesRepository repo2, UsersService service1) {
+    public ChatService(RoomsRepository repo1, MessagesRepository repo2, AccountsApi service1) {
         rooms = repo1;
         messages = repo2;
         users = service1;
@@ -29,7 +29,7 @@ public class ChatService {
 
     private ChatMessage.Model fillMessageModel(ChatMessage value) {
         ChatMessage.Model m = new ChatMessage.Model(value);
-        m.setAuthor(users.findUserById(value.getAuthorId()));
+        m.setAuthor(users.findById(value.getAuthorId()));
         m.setRoom(findChatById(value.getRoomId()));
         return m;
     }

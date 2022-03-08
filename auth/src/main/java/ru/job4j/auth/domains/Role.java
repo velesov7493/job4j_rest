@@ -1,4 +1,4 @@
-package ru.job4j.chat.domains;
+package ru.job4j.auth.domains;
 
 import javax.persistence.*;
 import java.util.Objects;

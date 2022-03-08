@@ -1,18 +1,19 @@
 package ru.job4j.employees.domains;
 
+import java.util.HashSet;
 import java.util.Objects;
+import java.util.Set;
 
 public class Account {
 
     private int id;
     private String login;
     private String password;
+    private boolean enabled;
+    private Set<String> authorityNames;
 
-    public static Account of(String login, String password) {
-        Account result = new Account();
-        result.setLogin(login);
-        result.setPassword(password);
-        return result;
+    public Account() {
+        authorityNames = new HashSet<>();
     }
 
     public int getId() {
@@ -39,6 +40,22 @@ public class Account {
         this.password = password;
     }
 
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
+    }
+
+    public Set<String> getAuthorityNames() {
+        return authorityNames;
+    }
+
+    public void setAuthorityNames(Set<String> authorityNames) {
+        this.authorityNames = authorityNames;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -47,10 +64,11 @@ public class Account {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        Account person = (Account) o;
-        return id == person.id
-               && Objects.equals(login, person.login)
-               && Objects.equals(password, person.password);
+        Account account = (Account) o;
+        return
+                id == account.id
+                && Objects.equals(login, account.login)
+                && Objects.equals(password, account.password);
     }
 
     @Override

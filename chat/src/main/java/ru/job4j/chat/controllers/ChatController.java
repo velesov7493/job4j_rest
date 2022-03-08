@@ -3,8 +3,10 @@ package ru.job4j.chat.controllers;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import ru.job4j.chat.domains.Account;
 import ru.job4j.chat.domains.ChatMessage;
 import ru.job4j.chat.domains.ChatRoom;
+import ru.job4j.chat.services.AccountsApi;
 import ru.job4j.chat.services.ChatService;
 
 import java.util.List;
@@ -13,13 +15,22 @@ import java.util.List;
 public class ChatController {
 
     private final ChatService chats;
+    private final AccountsApi accounts;
 
-    public ChatController(ChatService service) {
-        chats = service;
+    public ChatController(ChatService chats, AccountsApi accounts) {
+        this.chats = chats;
+        this.accounts = accounts;
     }
 
     @PostMapping("/chatrooms")
-    public ResponseEntity<ChatRoom> createChat(@RequestBody ChatRoom room) {
+    public ResponseEntity<ChatRoom> createChat(
+            @RequestHeader(name = AccountsApi.AUTH_HEADER_NAME, required = false) String token,
+            @RequestBody ChatRoom room
+    ) {
+        Account acc = accounts.getAccountByToken(token);
+        if (acc == null) {
+            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+        }
         ChatRoom result = chats.saveChat(room);
         return
                 result == null
@@ -28,7 +39,18 @@ public class ChatController {
     }
 
     @PutMapping("/chatrooms")
-    public ResponseEntity<Void> updateChat(@RequestBody ChatRoom room) {
+    public ResponseEntity<Void> updateChat(
+            @RequestHeader(name = AccountsApi.AUTH_HEADER_NAME, required = false) String token,
+            @RequestBody ChatRoom room
+    ) {
+        Account acc = accounts.getAccountByToken(token);
+        if (
+                acc == null || room.getId() != 0
+                && !acc.getAuthorityNames().contains("ROLE_ADMIN")
+                && !acc.getAuthorityNames().contains("ROLE_STAFF")
+        ) {
+            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+        }
         ChatRoom result = chats.saveChat(room);
         return
                 result == null
@@ -55,7 +77,14 @@ public class ChatController {
     }
 
     @DeleteMapping("/chatroom/{id}")
-    public ResponseEntity<Void> deleteChat(@PathVariable(name = "id") int chatId) {
+    public ResponseEntity<Void> deleteChat(
+            @RequestHeader(name = AccountsApi.AUTH_HEADER_NAME, required = false) String token,
+            @PathVariable(name = "id") int chatId
+    ) {
+        Account acc = accounts.getAccountByToken(token);
+        if (acc == null || !acc.getAuthorityNames().contains("ROLE_ADMIN")) {
+            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+        }
         return
                 chats.deleteChatById(chatId)
                 ? new ResponseEntity<>(HttpStatus.OK)
@@ -64,8 +93,13 @@ public class ChatController {
 
     @GetMapping("/chatroom/{id}/messages")
     public ResponseEntity<List<ChatMessage.Model>> getChatMessages(
+            @RequestHeader(name = AccountsApi.AUTH_HEADER_NAME, required = false) String token,
             @PathVariable("id") int chatId
     ) {
+        Account acc = accounts.getAccountByToken(token);
+        if (acc == null) {
+            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+        }
         List<ChatMessage.Model> list = chats.findAllMessagesByRoomId(chatId);
         return
                 list == null || list.isEmpty()
@@ -74,7 +108,15 @@ public class ChatController {
     }
 
     @PostMapping("/messages")
-    public ResponseEntity<ChatMessage.Model> createMessage(@RequestBody ChatMessage message) {
+    public ResponseEntity<ChatMessage.Model> createMessage(
+            @RequestHeader(name = AccountsApi.AUTH_HEADER_NAME, required = false) String token,
+            @RequestBody ChatMessage message
+    ) {
+        Account acc = accounts.getAccountByToken(token);
+        if (acc == null) {
+            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+        }
+        message.setAuthorId(acc.getId());
         ChatMessage.Model result = chats.saveMessage(message);
         return
                 result == null
@@ -83,7 +125,16 @@ public class ChatController {
     }
 
     @PutMapping("/messages")
-    public ResponseEntity<Void> updateMessage(@RequestBody ChatMessage message) {
+    public ResponseEntity<Void> updateMessage(
+            @RequestHeader(name = AccountsApi.AUTH_HEADER_NAME, required = false) String token,
+            @RequestBody ChatMessage message
+    ) {
+        Account acc = accounts.getAccountByToken(token);
+        ChatMessage.Model oldMsg = chats.findMessageById(message.getId());
+        if (acc == null || oldMsg.getAuthor().getId() != acc.getId()) {
+            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+        }
+        message.setAuthorId(acc.getId());
         ChatMessage.Model result = chats.saveMessage(message);
         return
                 result == null
@@ -92,7 +143,14 @@ public class ChatController {
     }
 
     @DeleteMapping("/message/{id}")
-    public ResponseEntity<Void> deleteMessage(@PathVariable("id") long messageId) {
+    public ResponseEntity<Void> deleteMessage(
+            @RequestHeader(name = AccountsApi.AUTH_HEADER_NAME, required = false) String token,
+            @PathVariable("id") long messageId
+    ) {
+        Account acc = accounts.getAccountByToken(token);
+        if (acc == null) {
+            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+        }
         return
                 chats.deleteMessageById(messageId)
                 ? new ResponseEntity<>(HttpStatus.OK)

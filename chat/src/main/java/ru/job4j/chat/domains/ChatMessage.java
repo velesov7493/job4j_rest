@@ -13,7 +13,7 @@ public class ChatMessage {
         private long id;
         private Date time;
         private String text;
-        private User.Model author;
+        private Account author;
         private ChatRoom room;
 
         public Model(ChatMessage entity) {
@@ -46,11 +46,11 @@ public class ChatMessage {
             this.text = text;
         }
 
-        public User.Model getAuthor() {
+        public Account getAuthor() {
             return author;
         }
 
-        public void setAuthor(User.Model author) {
+        public void setAuthor(Account author) {
             this.author = author;
         }
 

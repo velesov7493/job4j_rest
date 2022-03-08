@@ -1,26 +1,27 @@
 package ru.job4j.chat.controllers;
 
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import ru.job4j.chat.domains.Role;
-import ru.job4j.chat.domains.User;
-import ru.job4j.chat.services.UsersService;
+import ru.job4j.chat.domains.Account;
+import ru.job4j.chat.dto.AuthenticationDto;
+import ru.job4j.chat.services.AccountsApi;
 
 import java.util.List;
 
 @RestController
 public class UsersController {
 
-    private final UsersService users;
+    private final AccountsApi accounts;
 
-    public UsersController(UsersService service) {
-        users = service;
+    public UsersController(AccountsApi service) {
+        accounts = service;
     }
 
     @PostMapping("/users")
-    public ResponseEntity<User.Model> createUser(@RequestBody User user) {
-        User.Model result = users.saveUser(user);
+    public ResponseEntity<Account> createUser(@RequestBody Account user) {
+        Account result = accounts.create(user);
         return
                 result == null
                 ? new ResponseEntity<>(HttpStatus.NOT_ACCEPTABLE)
@@ -28,80 +29,75 @@ public class UsersController {
     }
 
     @GetMapping("/users")
-    public ResponseEntity<List<User.Model>> getAllUsers() {
-        List<User.Model> list = users.findAllUsers();
+    public ResponseEntity<List<Account>> getAllUsers(
+            @RequestHeader(name = "Authorization", required = false) String token
+    ) {
+        Account acc = accounts.getAccountByToken(token);
+        if (acc == null) {
+            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+        }
+        List<Account> list = accounts.findAll(token);
         return
                 list == null || list.isEmpty()
                 ? new ResponseEntity<>(HttpStatus.NO_CONTENT)
                 : new ResponseEntity<>(list, HttpStatus.OK);
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<Void> signIn(@RequestBody AuthenticationDto auth) {
+        String token = accounts.signIn(auth);
+        ResponseEntity<Void> result = new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+        if (token != null) {
+            HttpHeaders headers = new HttpHeaders();
+            headers.add(AccountsApi.AUTH_HEADER_NAME, token);
+            result = new ResponseEntity<>(headers, HttpStatus.OK);
+        }
+        return result;
     }
 
     @GetMapping("/user/{id}")
-    public ResponseEntity<User.Model> getUserById(@PathVariable("id") int userId) {
-        User.Model user = users.findUserById(userId);
+    public ResponseEntity<Account> getUserById(
+            @PathVariable("id") int userId,
+            @RequestHeader(name = "Authorization", required = false) String token
+    ) {
+        Account usr = accounts.getAccountByToken(token);
+        if (usr == null) {
+            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+        }
+        Account acc = accounts.findById(token, userId);
         return
-                user == null
+                acc == null
                 ? new ResponseEntity<>(HttpStatus.NOT_FOUND)
-                : new ResponseEntity<>(user, HttpStatus.OK);
+                : new ResponseEntity<>(acc, HttpStatus.OK);
     }
 
     @PutMapping("/users")
-    public ResponseEntity<Void> updateUser(@RequestBody User user) {
-        User.Model result = users.saveUser(user);
+    public ResponseEntity<Void> updateUser(
+            @RequestBody Account user,
+            @RequestHeader(name = "Authorization", required = false) String token
+    ) {
+        Account acc = accounts.getAccountByToken(token);
+        if (acc == null) {
+            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+        }
+        boolean result = accounts.update(token, user);
         return
-                result == null
-                ? new ResponseEntity<>(HttpStatus.NOT_ACCEPTABLE)
-                : new ResponseEntity<>(HttpStatus.ACCEPTED);
+                result
+                ? new ResponseEntity<>(HttpStatus.ACCEPTED)
+                : new ResponseEntity<>(HttpStatus.NOT_ACCEPTABLE);
     }
 
     @DeleteMapping("/user/{id}")
-    public ResponseEntity<Void> deleteUser(@PathVariable("id") int userId) {
+    public ResponseEntity<Void> deleteUser(
+            @PathVariable("id") int userId,
+            @RequestHeader(name = "Authorization", required = false) String token
+    ) {
+        Account acc = accounts.getAccountByToken(token);
+        if (acc == null) {
+            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+        }
         return
-                users.deleteUserById(userId)
-                ? new ResponseEntity<>(HttpStatus.OK)
-                : new ResponseEntity<>(HttpStatus.NOT_FOUND);
-    }
-
-    @PostMapping("/roles")
-    public ResponseEntity<Role> createRole(@RequestBody Role role) {
-        Role result = users.saveRole(role);
-        return
-                result == null
-                ? new ResponseEntity<>(HttpStatus.NOT_ACCEPTABLE)
-                : new ResponseEntity<>(result, HttpStatus.CREATED);
-    }
-
-    @GetMapping("/roles")
-    public ResponseEntity<List<Role>> getAllRoles() {
-        List<Role> list = users.findAllRoles();
-        return
-                list == null || list.isEmpty()
-                ? new ResponseEntity<>(HttpStatus.NO_CONTENT)
-                : new ResponseEntity<>(list, HttpStatus.OK);
-    }
-
-    @GetMapping("/role/{id}")
-    public ResponseEntity<Role> getRoleById(@PathVariable("id") int roleId) {
-        Role result = users.findRoleById(roleId);
-        return
-                result == null
-                ? new ResponseEntity<>(HttpStatus.NOT_FOUND)
-                : new ResponseEntity<>(result, HttpStatus.OK);
-    }
-
-    @PutMapping("/roles")
-    public ResponseEntity<Void> updateRole(@RequestBody Role role) {
-        Role result = users.saveRole(role);
-        return
-                result == null
-                ? new ResponseEntity<>(HttpStatus.NOT_ACCEPTABLE)
-                : new ResponseEntity<>(HttpStatus.ACCEPTED);
-    }
-
-    @DeleteMapping("/role/{id}")
-    public ResponseEntity<Void> deleteRole(@PathVariable("id") int roleId) {
-        return
-                users.deleteRoleById(roleId)
+                accounts.deleteById(token, userId)
                 ? new ResponseEntity<>(HttpStatus.OK)
                 : new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
