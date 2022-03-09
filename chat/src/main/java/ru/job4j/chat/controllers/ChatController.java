@@ -3,59 +3,60 @@ package ru.job4j.chat.controllers;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import ru.job4j.chat.exceptions.AccessDeniedException;
+import ru.job4j.chat.exceptions.ObjectNotFoundException;
+import ru.job4j.chat.exceptions.OperationNotAcceptableException;
 import ru.job4j.chat.domains.Account;
 import ru.job4j.chat.domains.ChatMessage;
 import ru.job4j.chat.domains.ChatRoom;
+import ru.job4j.chat.dto.ExceptionResponseDto;
 import ru.job4j.chat.services.AccountsApi;
 import ru.job4j.chat.services.ChatService;
 
+import java.util.Date;
 import java.util.List;
 
 @RestController
-public class ChatController {
+public class ChatController extends JwtAuthorizationController {
 
     private final ChatService chats;
-    private final AccountsApi accounts;
 
     public ChatController(ChatService chats, AccountsApi accounts) {
+        super(accounts);
         this.chats = chats;
-        this.accounts = accounts;
     }
 
     @PostMapping("/chatrooms")
     public ResponseEntity<ChatRoom> createChat(
             @RequestHeader(name = AccountsApi.AUTH_HEADER_NAME, required = false) String token,
             @RequestBody ChatRoom room
-    ) {
-        Account acc = accounts.getAccountByToken(token);
-        if (acc == null) {
-            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
-        }
+    ) throws AccessDeniedException, OperationNotAcceptableException {
+
+        authorize(token);
         ChatRoom result = chats.saveChat(room);
-        return
-                result == null
-                ? new ResponseEntity<>(HttpStatus.NOT_ACCEPTABLE)
-                : new ResponseEntity<>(result, HttpStatus.CREATED);
+        if (result == null) {
+            throw new OperationNotAcceptableException();
+        }
+        return new ResponseEntity<>(result, HttpStatus.CREATED);
     }
 
     @PutMapping("/chatrooms")
     public ResponseEntity<Void> updateChat(
             @RequestHeader(name = AccountsApi.AUTH_HEADER_NAME, required = false) String token,
             @RequestBody ChatRoom room
-    ) {
-        Account acc = accounts.getAccountByToken(token);
-        if (
-                acc == null || room.getId() != 0
-                && !acc.getAuthorityNames().contains("ROLE_ADMIN")
-                && !acc.getAuthorityNames().contains("ROLE_STAFF")
-        ) {
-            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
-        }
+    ) throws AccessDeniedException, OperationNotAcceptableException {
+
+        authorizeIf(token, (a) ->
+            room.getId() != 0
+            && (a.getAuthorityNames().contains("ROLE_ADMIN")
+                || a.getAuthorityNames().contains("ROLE_STAFF")
+            )
+        );
         ChatRoom result = chats.saveChat(room);
-        return
-                result == null
-                ? new ResponseEntity<>(HttpStatus.NOT_ACCEPTABLE)
-                : new ResponseEntity<>(HttpStatus.ACCEPTED);
+        if (result == null) {
+            throw new OperationNotAcceptableException();
+        }
+        return new ResponseEntity<>(HttpStatus.ACCEPTED);
     }
 
     @GetMapping("/chatrooms")
@@ -68,38 +69,36 @@ public class ChatController {
     }
 
     @GetMapping("/chatroom/{id}")
-    public ResponseEntity<ChatRoom> getChatById(@PathVariable("id") int chatId) {
+    public ResponseEntity<ChatRoom> getChatById(@PathVariable("id") int chatId)
+        throws ObjectNotFoundException {
+
         ChatRoom result = chats.findChatById(chatId);
-        return
-                result == null
-                ? new ResponseEntity<>(HttpStatus.NOT_FOUND)
-                : new ResponseEntity<>(result, HttpStatus.OK);
+        if (result == null) {
+            throw new ObjectNotFoundException();
+        }
+        return new ResponseEntity<>(result, HttpStatus.OK);
     }
 
     @DeleteMapping("/chatroom/{id}")
     public ResponseEntity<Void> deleteChat(
             @RequestHeader(name = AccountsApi.AUTH_HEADER_NAME, required = false) String token,
             @PathVariable(name = "id") int chatId
-    ) {
-        Account acc = accounts.getAccountByToken(token);
-        if (acc == null || !acc.getAuthorityNames().contains("ROLE_ADMIN")) {
-            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+    ) throws AccessDeniedException, ObjectNotFoundException {
+
+        authorizeIf(token, (a) -> a.getAuthorityNames().contains("ROLE_ADMIN"));
+        if (!chats.deleteChatById(chatId)) {
+            throw new ObjectNotFoundException();
         }
-        return
-                chats.deleteChatById(chatId)
-                ? new ResponseEntity<>(HttpStatus.OK)
-                : new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        return new ResponseEntity<>(HttpStatus.OK);
     }
 
     @GetMapping("/chatroom/{id}/messages")
     public ResponseEntity<List<ChatMessage.Model>> getChatMessages(
             @RequestHeader(name = AccountsApi.AUTH_HEADER_NAME, required = false) String token,
             @PathVariable("id") int chatId
-    ) {
-        Account acc = accounts.getAccountByToken(token);
-        if (acc == null) {
-            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
-        }
+    ) throws AccessDeniedException {
+
+        authorize(token);
         List<ChatMessage.Model> list = chats.findAllMessagesByRoomId(chatId);
         return
                 list == null || list.isEmpty()
@@ -111,49 +110,56 @@ public class ChatController {
     public ResponseEntity<ChatMessage.Model> createMessage(
             @RequestHeader(name = AccountsApi.AUTH_HEADER_NAME, required = false) String token,
             @RequestBody ChatMessage message
-    ) {
-        Account acc = accounts.getAccountByToken(token);
-        if (acc == null) {
-            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
-        }
+    ) throws AccessDeniedException, OperationNotAcceptableException {
+
+        Account acc = authorize(token);
         message.setAuthorId(acc.getId());
         ChatMessage.Model result = chats.saveMessage(message);
-        return
-                result == null
-                ? new ResponseEntity<>(HttpStatus.NOT_ACCEPTABLE)
-                : new ResponseEntity<>(result, HttpStatus.CREATED);
+        if (result == null) {
+            throw new OperationNotAcceptableException();
+        }
+        return new ResponseEntity<>(result, HttpStatus.CREATED);
     }
 
     @PutMapping("/messages")
     public ResponseEntity<Void> updateMessage(
             @RequestHeader(name = AccountsApi.AUTH_HEADER_NAME, required = false) String token,
             @RequestBody ChatMessage message
-    ) {
-        Account acc = accounts.getAccountByToken(token);
+    ) throws AccessDeniedException, OperationNotAcceptableException {
+
         ChatMessage.Model oldMsg = chats.findMessageById(message.getId());
-        if (acc == null || oldMsg.getAuthor().getId() != acc.getId()) {
-            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
-        }
+        Account acc = authorizeIf(token, (a) -> oldMsg.getAuthor().getId() == a.getId());
         message.setAuthorId(acc.getId());
         ChatMessage.Model result = chats.saveMessage(message);
-        return
-                result == null
-                ? new ResponseEntity<>(HttpStatus.NOT_ACCEPTABLE)
-                : new ResponseEntity<>(HttpStatus.ACCEPTED);
+        if (result == null) {
+            throw new OperationNotAcceptableException();
+        }
+        return new ResponseEntity<>(HttpStatus.ACCEPTED);
     }
 
     @DeleteMapping("/message/{id}")
     public ResponseEntity<Void> deleteMessage(
             @RequestHeader(name = AccountsApi.AUTH_HEADER_NAME, required = false) String token,
             @PathVariable("id") long messageId
-    ) {
-        Account acc = accounts.getAccountByToken(token);
-        if (acc == null) {
-            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+    ) throws AccessDeniedException, ObjectNotFoundException {
+
+        authorize(token);
+        if (!chats.deleteMessageById(messageId)) {
+            throw new ObjectNotFoundException();
         }
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    @ExceptionHandler(OperationNotAcceptableException.class)
+    public ResponseEntity<ExceptionResponseDto> handleException(
+        OperationNotAcceptableException e
+    ) {
         return
-                chats.deleteMessageById(messageId)
-                ? new ResponseEntity<>(HttpStatus.OK)
-                : new ResponseEntity<>(HttpStatus.NOT_FOUND);
+                new ResponseEntity<>(
+                    new ExceptionResponseDto(
+                            "Операция не применима к таким исходным данным!",
+                            new Date()
+                    ), HttpStatus.NOT_ACCEPTABLE
+                );
     }
 }

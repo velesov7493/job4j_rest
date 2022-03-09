@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import ru.job4j.chat.domains.Account;
 import ru.job4j.chat.dto.AuthenticationDto;
+import ru.job4j.chat.exceptions.JwtAuthorizationException;
 
 import java.util.List;
 
@@ -28,7 +29,7 @@ public class AccountsApi {
     private final RestTemplate rest;
     private final String serviceToken;
 
-    AccountsApi(RestTemplate temp) {
+    AccountsApi(RestTemplate temp) throws JwtAuthorizationException {
         rest = temp;
         AuthenticationDto auth = AuthenticationDto.of("chat-service", "service");
         serviceToken = signIn(auth);
@@ -49,7 +50,7 @@ public class AccountsApi {
 
     public boolean update(String token, Account value) {
         boolean result = false;
-        ResponseEntity<Account> resp = null;
+        ResponseEntity<Account> resp;
         try {
             HttpHeaders headers = new HttpHeaders();
             headers.add(AUTH_HEADER_NAME, token);
@@ -101,7 +102,7 @@ public class AccountsApi {
 
     public boolean deleteById(String token, int accountId) {
         boolean result = false;
-        ResponseEntity<Void> resp = null;
+        ResponseEntity<Void> resp;
         try {
             HttpHeaders headers = new HttpHeaders();
             headers.add(AUTH_HEADER_NAME, token);
@@ -129,13 +130,13 @@ public class AccountsApi {
                 : resp.getBody();
     }
 
-    public String signIn(AuthenticationDto auth) {
-        ResponseEntity<Void> resp = null;
+    public String signIn(AuthenticationDto auth) throws JwtAuthorizationException {
+        ResponseEntity<Void> resp;
         try {
             HttpEntity<AuthenticationDto> request = new HttpEntity<>(auth);
             resp = rest.exchange(LOGIN_URI, HttpMethod.POST, request, Void.class);
         } catch (Throwable ex) {
-            throw new IllegalStateException(ex);
+            throw new JwtAuthorizationException(ex);
         }
         List<String> headers =
             resp == null ? null

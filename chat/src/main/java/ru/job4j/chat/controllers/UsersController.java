@@ -4,39 +4,43 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import ru.job4j.chat.exceptions.AccessDeniedException;
+import ru.job4j.chat.exceptions.JwtAuthorizationException;
+import ru.job4j.chat.exceptions.ObjectNotFoundException;
+import ru.job4j.chat.exceptions.OperationNotAcceptableException;
 import ru.job4j.chat.domains.Account;
 import ru.job4j.chat.dto.AuthenticationDto;
+import ru.job4j.chat.dto.ExceptionResponseDto;
 import ru.job4j.chat.services.AccountsApi;
 
+import java.util.Date;
 import java.util.List;
 
 @RestController
-public class UsersController {
-
-    private final AccountsApi accounts;
+public class UsersController extends JwtAuthorizationController {
 
     public UsersController(AccountsApi service) {
-        accounts = service;
+        super(service);
     }
 
     @PostMapping("/users")
-    public ResponseEntity<Account> createUser(@RequestBody Account user) {
-        Account result = accounts.create(user);
-        return
-                result == null
-                ? new ResponseEntity<>(HttpStatus.NOT_ACCEPTABLE)
-                : new ResponseEntity<>(result, HttpStatus.CREATED);
+    public ResponseEntity<Account> createUser(@RequestBody Account user)
+        throws OperationNotAcceptableException {
+
+        Account result = getAccounts().create(user);
+        if (result == null) {
+            throw new OperationNotAcceptableException();
+        }
+        return new ResponseEntity<>(result, HttpStatus.CREATED);
     }
 
     @GetMapping("/users")
     public ResponseEntity<List<Account>> getAllUsers(
             @RequestHeader(name = "Authorization", required = false) String token
-    ) {
-        Account acc = accounts.getAccountByToken(token);
-        if (acc == null) {
-            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
-        }
-        List<Account> list = accounts.findAll(token);
+    ) throws AccessDeniedException {
+
+        authorize(token);
+        List<Account> list = getAccounts().findAll(token);
         return
                 list == null || list.isEmpty()
                 ? new ResponseEntity<>(HttpStatus.NO_CONTENT)
@@ -44,61 +48,64 @@ public class UsersController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<Void> signIn(@RequestBody AuthenticationDto auth) {
-        String token = accounts.signIn(auth);
-        ResponseEntity<Void> result = new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
-        if (token != null) {
-            HttpHeaders headers = new HttpHeaders();
-            headers.add(AccountsApi.AUTH_HEADER_NAME, token);
-            result = new ResponseEntity<>(headers, HttpStatus.OK);
+    public ResponseEntity<Void> signIn(@RequestBody AuthenticationDto auth)
+        throws JwtAuthorizationException {
+
+        String token = getAccounts().signIn(auth);
+        if (token == null) {
+            throw new JwtAuthorizationException();
         }
-        return result;
+        HttpHeaders headers = new HttpHeaders();
+        headers.add(AccountsApi.AUTH_HEADER_NAME, token);
+        return new ResponseEntity<>(headers, HttpStatus.OK);
     }
 
     @GetMapping("/user/{id}")
     public ResponseEntity<Account> getUserById(
             @PathVariable("id") int userId,
             @RequestHeader(name = "Authorization", required = false) String token
-    ) {
-        Account usr = accounts.getAccountByToken(token);
-        if (usr == null) {
-            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+    ) throws AccessDeniedException, ObjectNotFoundException {
+
+        authorize(token);
+        Account acc = getAccounts().findById(token, userId);
+        if (acc == null) {
+            throw new ObjectNotFoundException();
         }
-        Account acc = accounts.findById(token, userId);
-        return
-                acc == null
-                ? new ResponseEntity<>(HttpStatus.NOT_FOUND)
-                : new ResponseEntity<>(acc, HttpStatus.OK);
+        return new ResponseEntity<>(acc, HttpStatus.OK);
     }
 
     @PutMapping("/users")
     public ResponseEntity<Void> updateUser(
             @RequestBody Account user,
             @RequestHeader(name = "Authorization", required = false) String token
-    ) {
-        Account acc = accounts.getAccountByToken(token);
-        if (acc == null) {
-            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+    ) throws AccessDeniedException, OperationNotAcceptableException {
+
+        authorize(token);
+        if (!getAccounts().update(token, user)) {
+            throw new OperationNotAcceptableException();
         }
-        boolean result = accounts.update(token, user);
-        return
-                result
-                ? new ResponseEntity<>(HttpStatus.ACCEPTED)
-                : new ResponseEntity<>(HttpStatus.NOT_ACCEPTABLE);
+        return new ResponseEntity<>(HttpStatus.ACCEPTED);
     }
 
     @DeleteMapping("/user/{id}")
     public ResponseEntity<Void> deleteUser(
             @PathVariable("id") int userId,
             @RequestHeader(name = "Authorization", required = false) String token
-    ) {
-        Account acc = accounts.getAccountByToken(token);
-        if (acc == null) {
-            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+    ) throws AccessDeniedException, ObjectNotFoundException {
+
+        authorize(token);
+        if (!getAccounts().deleteById(token, userId)) {
+            throw new ObjectNotFoundException();
         }
-        return
-                accounts.deleteById(token, userId)
-                ? new ResponseEntity<>(HttpStatus.OK)
-                : new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    @ExceptionHandler(JwtAuthorizationException.class)
+    public ResponseEntity<ExceptionResponseDto> handleException(JwtAuthorizationException e) {
+        ExceptionResponseDto resp = new ExceptionResponseDto(
+                "Ошибка авторизации: неправильный логин и/или пароль!",
+                new Date()
+        );
+        return new ResponseEntity<>(resp, HttpStatus.UNAUTHORIZED);
     }
 }
