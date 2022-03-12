@@ -52,9 +52,6 @@ public class UsersController extends JwtAuthorizationController {
         throws JwtAuthorizationException {
 
         String token = getAccounts().signIn(auth);
-        if (token == null) {
-            throw new JwtAuthorizationException();
-        }
         HttpHeaders headers = new HttpHeaders();
         headers.add(AccountsApi.AUTH_HEADER_NAME, token);
         return new ResponseEntity<>(headers, HttpStatus.OK);

@@ -123,6 +123,22 @@ public class ChatMessage {
         this.roomId = roomId;
     }
 
+    public ChatMessage patch(ChatMessage other) {
+        if (id == 0) {
+            throw new IllegalStateException("Эта операция неприменима к новым объектам!");
+        }
+        if (other.time != null) {
+            time = other.time;
+        }
+        if (other.text != null) {
+            text = other.text;
+        }
+        if (other.roomId > 0) {
+            roomId = other.roomId;
+        }
+        return this;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {

@@ -1,9 +1,11 @@
 package ru.job4j.auth.controllers;
 
+import org.hibernate.ObjectNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import ru.job4j.auth.domains.Person;
+import ru.job4j.auth.dto.PersonDto;
 import ru.job4j.auth.security.JwtTokenProvider;
 import ru.job4j.auth.services.PersonService;
 
@@ -66,6 +68,15 @@ public class PersonController {
                 result == null
                 ? new ResponseEntity<>(HttpStatus.NOT_ACCEPTABLE)
                 : new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    @PatchMapping("/")
+    public ResponseEntity<Person> patch(@RequestBody PersonDto person) {
+        Person result = persons.patch(person);
+        return
+                result == null
+                ? new ResponseEntity<>(HttpStatus.NOT_FOUND)
+                : new ResponseEntity<>(result, HttpStatus.ACCEPTED);
     }
 
     @DeleteMapping("/{id}")

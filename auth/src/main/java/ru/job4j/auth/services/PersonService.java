@@ -9,10 +9,14 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import ru.job4j.auth.domains.Person;
+import ru.job4j.auth.domains.Role;
+import ru.job4j.auth.dto.PersonDto;
 import ru.job4j.auth.repositories.PersonRepository;
+import ru.job4j.auth.repositories.RoleRepository;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 @Service
 public class PersonService implements UserDetailsService {
@@ -20,11 +24,28 @@ public class PersonService implements UserDetailsService {
     private static final Logger LOG = LoggerFactory.getLogger(PersonService.class);
 
     private final PersonRepository persons;
+    private final RoleRepository roles;
     private final BCryptPasswordEncoder encoder;
 
-    public PersonService(PersonRepository persons, BCryptPasswordEncoder encoder) {
+    public PersonService(
+            PersonRepository persons,
+            RoleRepository roles,
+            BCryptPasswordEncoder encoder
+    ) {
         this.persons = persons;
+        this.roles = roles;
         this.encoder = encoder;
+    }
+
+    private void fillRolesByIds(Person value, Set<Integer> roleIds) {
+        if (roleIds == null) {
+            return;
+        }
+        value.getRoles().clear();
+        for (Integer roleId : roleIds) {
+            Optional<Role> r = roles.findById(roleId);
+            r.ifPresent(value::addRole);
+        }
     }
 
     @Override
@@ -54,6 +75,16 @@ public class PersonService implements UserDetailsService {
             LOG.error("Ошибка сохранения пользователя: ", ex);
         }
         return result;
+    }
+
+    public Person patch(PersonDto data) {
+        Optional<Person> old = persons.findById(data.getId());
+        if (old.isEmpty()) {
+            return null;
+        }
+        Person p = old.get().patch(data);
+        fillRolesByIds(p, data.getRoleIds());
+        return save(p);
     }
 
     public Person findById(Integer integer) {

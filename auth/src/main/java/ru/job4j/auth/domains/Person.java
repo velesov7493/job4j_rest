@@ -5,6 +5,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
+import ru.job4j.auth.dto.PersonDto;
 
 import javax.persistence.*;
 import java.util.*;
@@ -83,6 +84,22 @@ public class Person {
         Set<String> result = new HashSet<>();
         roles.forEach(((r) -> result.add(r.getAuthority())));
         return result;
+    }
+
+    public Person patch(PersonDto other) {
+        if (id == 0) {
+            throw new IllegalStateException("Эта операция неприменима к новым объектам!");
+        }
+        if (other.getLogin() != null) {
+            login = other.getLogin();
+        }
+        if (other.getPassword() != null) {
+            password = other.getPassword();
+        }
+        if (other.isEnabled() != enabled) {
+            enabled = other.isEnabled();
+        }
+        return this;
     }
 
     @Override

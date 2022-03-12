@@ -59,6 +59,25 @@ public class ChatController extends JwtAuthorizationController {
         return new ResponseEntity<>(HttpStatus.ACCEPTED);
     }
 
+    @PatchMapping("/chatrooms")
+    public ResponseEntity<Void> patchChat(
+            @RequestHeader(name = AccountsApi.AUTH_HEADER_NAME, required = false) String token,
+            @RequestBody ChatRoom room
+    ) throws AccessDeniedException, OperationNotAcceptableException, ObjectNotFoundException {
+
+        authorizeIf(token, (a) ->
+                room.getId() != 0
+                    && (a.getAuthorityNames().contains("ROLE_ADMIN")
+                        || a.getAuthorityNames().contains("ROLE_STAFF")
+                )
+        );
+        ChatRoom result = chats.patchChat(room);
+        if (result == null) {
+            throw new OperationNotAcceptableException();
+        }
+        return new ResponseEntity<>(HttpStatus.ACCEPTED);
+    }
+
     @GetMapping("/chatrooms")
     public ResponseEntity<List<ChatRoom>> getAllChats() {
         List<ChatRoom> list = chats.findAllChats();
@@ -137,6 +156,22 @@ public class ChatController extends JwtAuthorizationController {
         return new ResponseEntity<>(HttpStatus.ACCEPTED);
     }
 
+    @PatchMapping("/messages")
+    public ResponseEntity<ChatMessage> patchMessage(
+            @RequestHeader(name = AccountsApi.AUTH_HEADER_NAME, required = false) String token,
+            @RequestBody ChatMessage message
+    ) throws AccessDeniedException, OperationNotAcceptableException, ObjectNotFoundException {
+
+        ChatMessage.Model oldMsg = chats.findMessageById(message.getId());
+        Account acc = authorizeIf(token, (a) -> oldMsg.getAuthor().getId() == a.getId());
+        message.setAuthorId(acc.getId());
+        ChatMessage.Model result = chats.patchMessage(message);
+        if (result == null) {
+            throw new OperationNotAcceptableException();
+        }
+        return new ResponseEntity<>(HttpStatus.ACCEPTED);
+    }
+
     @DeleteMapping("/message/{id}")
     public ResponseEntity<Void> deleteMessage(
             @RequestHeader(name = AccountsApi.AUTH_HEADER_NAME, required = false) String token,
@@ -148,18 +183,5 @@ public class ChatController extends JwtAuthorizationController {
             throw new ObjectNotFoundException();
         }
         return new ResponseEntity<>(HttpStatus.OK);
-    }
-
-    @ExceptionHandler(OperationNotAcceptableException.class)
-    public ResponseEntity<ExceptionResponseDto> handleException(
-        OperationNotAcceptableException e
-    ) {
-        return
-                new ResponseEntity<>(
-                    new ExceptionResponseDto(
-                            "Операция не применима к таким исходным данным!",
-                            new Date()
-                    ), HttpStatus.NOT_ACCEPTABLE
-                );
     }
 }

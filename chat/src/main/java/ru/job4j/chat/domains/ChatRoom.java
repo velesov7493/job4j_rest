@@ -33,6 +33,16 @@ public class ChatRoom {
         this.name = name;
     }
 
+    public ChatRoom patch(ChatRoom other) {
+        if (id == 0) {
+            throw new IllegalStateException("Эта операция неприменима к новым объектам!");
+        }
+        if (other.name != null) {
+            name = other.name;
+        }
+        return this;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {

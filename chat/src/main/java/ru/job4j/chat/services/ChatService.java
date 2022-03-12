@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import ru.job4j.chat.domains.ChatMessage;
 import ru.job4j.chat.domains.ChatRoom;
+import ru.job4j.chat.exceptions.ObjectNotFoundException;
 import ru.job4j.chat.repositories.MessagesRepository;
 import ru.job4j.chat.repositories.RoomsRepository;
 
@@ -52,6 +53,14 @@ public class ChatService {
         return result;
     }
 
+    public ChatRoom patchChat(ChatRoom entity) throws ObjectNotFoundException {
+        Optional<ChatRoom> oldChat = rooms.findById(entity.getId());
+        if (oldChat.isEmpty()) {
+            throw new ObjectNotFoundException();
+        }
+        return saveChat(oldChat.get().patch(entity));
+    }
+
     public boolean deleteChatById(Integer chatId) {
         boolean result = false;
         try {
@@ -83,6 +92,14 @@ public class ChatService {
             LOG.error("Ошибка записи сообщения: ", ex);
         }
         return result;
+    }
+
+    public ChatMessage.Model patchMessage(ChatMessage entity) throws ObjectNotFoundException {
+        Optional<ChatMessage> m = messages.findById(entity.getId());
+        if (m.isEmpty()) {
+            throw new ObjectNotFoundException();
+        }
+        return saveMessage(m.get().patch(entity));
     }
 
     public boolean deleteMessageById(long messageId) {
