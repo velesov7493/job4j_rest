@@ -1,6 +1,9 @@
 package ru.job4j.chat.domains;
 
 import javax.persistence.*;
+import javax.validation.constraints.Min;
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotNull;
 import java.util.Objects;
 
 @Entity
@@ -14,7 +17,9 @@ public class ChatRoom {
             allocationSize = 1
     )
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "roomsIdSeq")
+    @Min(value = 1, message = "Id должен быть больше нуля", groups = {Operations.OnUpdate.class})
     private int id;
+    @NotNull @NotBlank
     private String name;
 
     public int getId() {

@@ -6,7 +6,6 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.User;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import ru.job4j.auth.dto.AuthenticationDto;
 
@@ -35,7 +34,7 @@ public class JwtAuthenticationFilter extends UsernamePasswordAuthenticationFilte
             HttpServletRequest request, HttpServletResponse response
     ) throws AuthenticationException {
 
-        Authentication result = null;
+        Authentication result;
         try {
             AuthenticationDto creds =
                     new ObjectMapper()

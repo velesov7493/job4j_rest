@@ -8,6 +8,9 @@ import org.springframework.security.core.userdetails.UserDetails;
 import ru.job4j.auth.dto.PersonDto;
 
 import javax.persistence.*;
+import javax.validation.constraints.Min;
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.Size;
 import java.util.*;
 
 @Entity
@@ -16,8 +19,11 @@ public class Person {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Min(value = 1, message = "Id должен быть больше нуля", groups = {Operations.OnUpdate.class})
     private int id;
+    @Size(min = 4, max = 60, message = "Длина логина должна быть в пределах [4,60]")
     private String login;
+    @NotBlank(message = "Пароль не может быть пустым")
     private String password;
     private boolean enabled;
     @ManyToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY)

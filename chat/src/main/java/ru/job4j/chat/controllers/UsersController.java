@@ -3,7 +3,9 @@ package ru.job4j.chat.controllers;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import ru.job4j.chat.domains.Operations;
 import ru.job4j.chat.exceptions.AccessDeniedException;
 import ru.job4j.chat.exceptions.JwtAuthorizationException;
 import ru.job4j.chat.exceptions.ObjectNotFoundException;
@@ -13,6 +15,7 @@ import ru.job4j.chat.dto.AuthenticationDto;
 import ru.job4j.chat.dto.ExceptionResponseDto;
 import ru.job4j.chat.services.AccountsApi;
 
+import javax.validation.Valid;
 import java.util.Date;
 import java.util.List;
 
@@ -24,7 +27,8 @@ public class UsersController extends JwtAuthorizationController {
     }
 
     @PostMapping("/users")
-    public ResponseEntity<Account> createUser(@RequestBody Account user)
+    @Validated(Operations.OnCreate.class)
+    public ResponseEntity<Account> createUser(@Valid @RequestBody Account user)
         throws OperationNotAcceptableException {
 
         Account result = getAccounts().create(user);
@@ -48,7 +52,7 @@ public class UsersController extends JwtAuthorizationController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<Void> signIn(@RequestBody AuthenticationDto auth)
+    public ResponseEntity<Void> signIn(@Valid @RequestBody AuthenticationDto auth)
         throws JwtAuthorizationException {
 
         String token = getAccounts().signIn(auth);
@@ -72,8 +76,9 @@ public class UsersController extends JwtAuthorizationController {
     }
 
     @PutMapping("/users")
+    @Validated(Operations.OnUpdate.class)
     public ResponseEntity<Void> updateUser(
-            @RequestBody Account user,
+            @Valid @RequestBody Account user,
             @RequestHeader(name = "Authorization", required = false) String token
     ) throws AccessDeniedException, OperationNotAcceptableException {
 
@@ -99,10 +104,8 @@ public class UsersController extends JwtAuthorizationController {
 
     @ExceptionHandler(JwtAuthorizationException.class)
     public ResponseEntity<ExceptionResponseDto> handleException(JwtAuthorizationException e) {
-        ExceptionResponseDto resp = new ExceptionResponseDto(
-                "Ошибка авторизации: неправильный логин и/или пароль!",
-                new Date()
-        );
+        String msg = "Ошибка авторизации: неправильный логин и/или пароль!";
+        ExceptionResponseDto resp = new ExceptionResponseDto(msg, new Date());
         return new ResponseEntity<>(resp, HttpStatus.UNAUTHORIZED);
     }
 }

@@ -1,6 +1,7 @@
 package ru.job4j.chat.domains;
 
 import javax.persistence.*;
+import javax.validation.constraints.*;
 import java.util.Date;
 import java.util.Objects;
 
@@ -70,9 +71,12 @@ public class ChatMessage {
             allocationSize = 1
     )
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "messagesIdSeq")
+    @Min(value = 1, message = "Id должен быть больше нуля", groups = {Operations.OnUpdate.class})
     private long id;
     @Temporal(TemporalType.TIMESTAMP)
+    @PastOrPresent
     private Date time;
+    @NotNull @NotBlank
     private String text;
     @Column(name = "id_author")
     private int authorId;

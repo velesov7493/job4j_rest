@@ -2,18 +2,19 @@ package ru.job4j.chat.controllers;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import ru.job4j.chat.domains.Operations;
 import ru.job4j.chat.exceptions.AccessDeniedException;
 import ru.job4j.chat.exceptions.ObjectNotFoundException;
 import ru.job4j.chat.exceptions.OperationNotAcceptableException;
 import ru.job4j.chat.domains.Account;
 import ru.job4j.chat.domains.ChatMessage;
 import ru.job4j.chat.domains.ChatRoom;
-import ru.job4j.chat.dto.ExceptionResponseDto;
 import ru.job4j.chat.services.AccountsApi;
 import ru.job4j.chat.services.ChatService;
 
-import java.util.Date;
+import javax.validation.Valid;
 import java.util.List;
 
 @RestController
@@ -27,9 +28,10 @@ public class ChatController extends JwtAuthorizationController {
     }
 
     @PostMapping("/chatrooms")
+    @Validated(Operations.OnCreate.class)
     public ResponseEntity<ChatRoom> createChat(
             @RequestHeader(name = AccountsApi.AUTH_HEADER_NAME, required = false) String token,
-            @RequestBody ChatRoom room
+            @Valid @RequestBody ChatRoom room
     ) throws AccessDeniedException, OperationNotAcceptableException {
 
         authorize(token);
@@ -41,16 +43,15 @@ public class ChatController extends JwtAuthorizationController {
     }
 
     @PutMapping("/chatrooms")
+    @Validated(Operations.OnUpdate.class)
     public ResponseEntity<Void> updateChat(
             @RequestHeader(name = AccountsApi.AUTH_HEADER_NAME, required = false) String token,
-            @RequestBody ChatRoom room
+            @Valid @RequestBody ChatRoom room
     ) throws AccessDeniedException, OperationNotAcceptableException {
 
         authorizeIf(token, (a) ->
-            room.getId() != 0
-            && (a.getAuthorityNames().contains("ROLE_ADMIN")
-                || a.getAuthorityNames().contains("ROLE_STAFF")
-            )
+            a.getAuthorityNames().contains("ROLE_ADMIN")
+            || a.getAuthorityNames().contains("ROLE_STAFF")
         );
         ChatRoom result = chats.saveChat(room);
         if (result == null) {
@@ -60,16 +61,15 @@ public class ChatController extends JwtAuthorizationController {
     }
 
     @PatchMapping("/chatrooms")
+    @Validated(Operations.OnUpdate.class)
     public ResponseEntity<Void> patchChat(
             @RequestHeader(name = AccountsApi.AUTH_HEADER_NAME, required = false) String token,
-            @RequestBody ChatRoom room
+            @Valid @RequestBody ChatRoom room
     ) throws AccessDeniedException, OperationNotAcceptableException, ObjectNotFoundException {
 
         authorizeIf(token, (a) ->
-                room.getId() != 0
-                    && (a.getAuthorityNames().contains("ROLE_ADMIN")
-                        || a.getAuthorityNames().contains("ROLE_STAFF")
-                )
+            a.getAuthorityNames().contains("ROLE_ADMIN")
+            || a.getAuthorityNames().contains("ROLE_STAFF")
         );
         ChatRoom result = chats.patchChat(room);
         if (result == null) {
@@ -126,9 +126,10 @@ public class ChatController extends JwtAuthorizationController {
     }
 
     @PostMapping("/messages")
+    @Validated(Operations.OnCreate.class)
     public ResponseEntity<ChatMessage.Model> createMessage(
             @RequestHeader(name = AccountsApi.AUTH_HEADER_NAME, required = false) String token,
-            @RequestBody ChatMessage message
+            @Valid @RequestBody ChatMessage message
     ) throws AccessDeniedException, OperationNotAcceptableException {
 
         Account acc = authorize(token);
@@ -141,9 +142,10 @@ public class ChatController extends JwtAuthorizationController {
     }
 
     @PutMapping("/messages")
+    @Validated(Operations.OnUpdate.class)
     public ResponseEntity<Void> updateMessage(
             @RequestHeader(name = AccountsApi.AUTH_HEADER_NAME, required = false) String token,
-            @RequestBody ChatMessage message
+            @Valid @RequestBody ChatMessage message
     ) throws AccessDeniedException, OperationNotAcceptableException {
 
         ChatMessage.Model oldMsg = chats.findMessageById(message.getId());
@@ -157,9 +159,10 @@ public class ChatController extends JwtAuthorizationController {
     }
 
     @PatchMapping("/messages")
+    @Validated(Operations.OnUpdate.class)
     public ResponseEntity<ChatMessage> patchMessage(
             @RequestHeader(name = AccountsApi.AUTH_HEADER_NAME, required = false) String token,
-            @RequestBody ChatMessage message
+            @Valid @RequestBody ChatMessage message
     ) throws AccessDeniedException, OperationNotAcceptableException, ObjectNotFoundException {
 
         ChatMessage.Model oldMsg = chats.findMessageById(message.getId());

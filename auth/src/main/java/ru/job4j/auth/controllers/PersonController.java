@@ -1,15 +1,17 @@
 package ru.job4j.auth.controllers;
 
-import org.hibernate.ObjectNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import ru.job4j.auth.domains.Operations;
 import ru.job4j.auth.domains.Person;
 import ru.job4j.auth.dto.PersonDto;
 import ru.job4j.auth.security.JwtTokenProvider;
 import ru.job4j.auth.services.PersonService;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.validation.Valid;
 import java.util.List;
 
 @RestController
@@ -43,7 +45,8 @@ public class PersonController {
     }
 
     @PostMapping("/")
-    public ResponseEntity<Person> create(@RequestBody Person person) {
+    @Validated(Operations.OnCreate.class)
+    public ResponseEntity<Person> create(@Valid @RequestBody Person person) {
         Person result = persons.save(person);
         return
                 result == null
@@ -62,7 +65,8 @@ public class PersonController {
     }
 
     @PutMapping("/")
-    public ResponseEntity<Void> update(@RequestBody Person person) {
+    @Validated(Operations.OnUpdate.class)
+    public ResponseEntity<Void> update(@Valid @RequestBody Person person) {
         Person result = persons.save(person);
         return
                 result == null
@@ -71,7 +75,8 @@ public class PersonController {
     }
 
     @PatchMapping("/")
-    public ResponseEntity<Person> patch(@RequestBody PersonDto person) {
+    @Validated(Operations.OnUpdate.class)
+    public ResponseEntity<Person> patch(@Valid @RequestBody PersonDto person) {
         Person result = persons.patch(person);
         return
                 result == null

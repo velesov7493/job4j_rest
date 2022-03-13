@@ -1,13 +1,19 @@
 package ru.job4j.chat.domains;
 
+import javax.validation.constraints.Min;
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.Size;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 
 public class Account {
 
+    @Min(value = 1, message = "Id должен быть больше нуля", groups = {Operations.OnUpdate.class})
     private int id;
+    @Size(min = 4, max = 60, message = "Длина логина должна быть в пределах [4,60]")
     private String login;
+    @NotBlank(message = "Пароль не может быть пустым")
     private String password;
     private boolean enabled;
     private Set<String> authorityNames;
